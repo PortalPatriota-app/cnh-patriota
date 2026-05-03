@@ -338,7 +338,7 @@
 
   <div class="botoes">
     <button type="button" class="btn-png" id="btnPng" disabled>
-      <span>🖼</span> Baixar PNG
+      <span id="btnPngIcone">🖼</span> <span id="btnPngTexto">Baixar PNG</span>
     </button>
     <button type="button" class="btn-pdf" id="btnPdf" disabled>
       <span>📄</span> Baixar PDF
@@ -545,20 +545,66 @@ function verificarCampos() {
   document.getElementById('btnPng').disabled = !ok;
   document.getElementById('btnPdf').disabled = !ok;
   document.getElementById('hint').textContent = ok
-    ? 'Pronto! Baixe em PNG (só a carteirinha) ou PDF (folha A4 para imprimir)'
+    ? (podeCompartilharArquivo()
+        ? 'Pronto! Toque em Compartilhar para enviar pelo WhatsApp, salvar na galeria ou outro app'
+        : 'Pronto! Baixe em PNG (só a carteirinha) ou PDF (folha A4 para imprimir)')
     : 'Preencha todos os campos para habilitar o download';
 }
 
 // ============================================
 // DOWNLOADS
 // ============================================
-async function baixarPNG() {
+// Detecta se o navegador suporta compartilhar arquivos (Web Share API Level 2)
+function podeCompartilharArquivo() {
+  if (!navigator.share || !navigator.canShare) return false;
+  // Tenta criar um arquivo de teste
+  try {
+    const testFile = new File(['x'], 'test.png', { type: 'image/png' });
+    return navigator.canShare({ files: [testFile] });
+  } catch (e) {
+    return false;
+  }
+}
+
+// Converte canvas em Blob (Promise)
+function canvasParaBlob(canvas, tipo = 'image/png') {
+  return new Promise((resolve) => canvas.toBlob(resolve, tipo));
+}
+
+async function gerarPNGCanvas() {
   // PNG = canvas exato (552x728), sem margens — carteirinha pura
   const canvas = document.createElement('canvas');
   await desenharCNH(canvas);
+  return canvas;
+}
 
+async function baixarPNG() {
+  const canvas = await gerarPNGCanvas();
+  const nomeArquivo = `carterinha_${slugify(state.nome)}.png`;
+
+  // Se suportar compartilhamento de arquivos, abre menu nativo
+  if (podeCompartilharArquivo()) {
+    try {
+      const blob = await canvasParaBlob(canvas);
+      const file = new File([blob], nomeArquivo, { type: 'image/png' });
+      await navigator.share({
+        files: [file],
+        title: 'Minha Carterinha do Patriotismo',
+        text: '#EUSOUPATRIOTA 🇧🇷',
+      });
+      toast('Compartilhado!');
+      return;
+    } catch (err) {
+      // Usuário cancelou — não precisa fazer nada
+      if (err.name === 'AbortError') return;
+      // Outro erro — cai no fallback de download
+      console.warn('Share falhou, fazendo download:', err);
+    }
+  }
+
+  // Fallback: download direto (desktop ou navegadores antigos)
   const link = document.createElement('a');
-  link.download = `carterinha_${slugify(state.nome)}.png`;
+  link.download = nomeArquivo;
   link.href = canvas.toDataURL('image/png');
   link.click();
   toast('PNG baixado!');
@@ -634,6 +680,13 @@ document.getElementById('btnPdf').addEventListener('click', baixarPDF);
 (async function init() {
   state.patriotaId = gerarPatriotaId();
   document.getElementById('idLabel').textContent = state.patriotaId;
+
+  // Adapta texto do botão PNG conforme dispositivo
+  if (podeCompartilharArquivo()) {
+    document.getElementById('btnPngIcone').textContent = '📤';
+    document.getElementById('btnPngTexto').textContent = 'Compartilhar';
+  }
+
   try {
     state.molde = await carregarImagem(MOLDE_SRC);
     await atualizarPreview();
