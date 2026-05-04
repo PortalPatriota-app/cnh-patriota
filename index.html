@@ -1,13 +1,15 @@
-<html lang="pt-BR"><head>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Certificado Patriota</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
+ 
   :root {
     --verde:  #009C3B;
     --amarelo:#FFDF00;
@@ -17,7 +19,7 @@
     --borda:  #d8d4cc;
     --bg:     #f5f4f0;
   }
-
+ 
   body {
     background: var(--bg);
     font-family: 'Cinzel', Georgia, serif;
@@ -27,9 +29,9 @@
     align-items: center;
     padding: 52px 20px 64px;
   }
-
+ 
   header { text-align: center; margin-bottom: 44px; }
-
+ 
   .flag-bar {
     display: flex;
     justify-content: center;
@@ -40,7 +42,7 @@
   .flag-bar .g { width: 40px; background: var(--verde); }
   .flag-bar .y { width: 64px; background: var(--amarelo); }
   .flag-bar .b { width: 28px; background: var(--azul); }
-
+ 
   h1 {
     font-size: clamp(1.2rem, 3.2vw, 1.9rem);
     font-weight: 900;
@@ -49,14 +51,14 @@
     text-transform: uppercase;
     margin-bottom: 7px;
   }
-
+ 
   .tagline {
     font-size: 0.65rem;
     color: var(--cinza);
     letter-spacing: 0.22em;
     text-transform: uppercase;
   }
-
+ 
   .form-row {
     display: flex;
     gap: 10px;
@@ -64,7 +66,7 @@
     max-width: 500px;
     margin-bottom: 40px;
   }
-
+ 
   input[type="text"] {
     flex: 1;
     font-family: 'Cinzel', serif;
@@ -83,7 +85,7 @@
     border-color: var(--azul);
     box-shadow: 0 0 0 3px rgba(0,39,118,0.09);
   }
-
+ 
   .btn-gerar {
     font-family: 'Cinzel', serif;
     font-size: 0.72rem;
@@ -102,7 +104,7 @@
   }
   .btn-gerar:hover  { background: #001a5c; transform: translateY(-1px); }
   .btn-gerar:active { transform: translateY(0); }
-
+ 
   .canvas-wrap {
     display: inline-block;
     border: 1px solid var(--borda);
@@ -110,9 +112,11 @@
     overflow: hidden;
     box-shadow: 0 6px 32px rgba(0,0,0,0.11);
     background: #fff;
+    max-width: 820px;
+    width: 100%;
   }
   canvas { display: block; max-width: 100%; }
-
+ 
   .actions {
     display: flex;
     gap: 12px;
@@ -120,7 +124,7 @@
     flex-wrap: wrap;
     justify-content: center;
   }
-
+ 
   .btn-dl {
     font-family: 'Cinzel', serif;
     font-size: 0.7rem;
@@ -139,7 +143,7 @@
   .btn-pdf { color: var(--azul);  border-color: var(--azul);  }
   .btn-pdf:hover { background: var(--azul); color: #fff; transform: translateY(-1px); }
   .btn-dl:disabled { opacity: 0.28; cursor: not-allowed; transform: none !important; }
-
+ 
   .status {
     margin-top: 14px;
     font-size: 0.68rem;
@@ -150,21 +154,9 @@
     text-align: center;
   }
 </style>
-<style>
-  * {
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    user-select: none !important;
-  }
-  input[type="text"] {
-    -webkit-user-select: text !important;
-    user-select: text !important;
-  }
-  canvas { pointer-events: none; }
-</style></head>
+</head>
 <body>
-
+ 
 <header>
   <div class="flag-bar">
     <span class="g"></span><span class="y"></span><span class="b"></span>
@@ -173,60 +165,62 @@
   <h1>Certificado Patriota</h1>
   <p class="tagline">Portal Patriota App</p>
 </header>
-
+ 
 <div class="form-row">
-  <input type="text" id="nomeInput" placeholder="Digite o nome completo..." maxlength="50">
+  <input type="text" id="nomeInput" placeholder="Digite o nome completo..." maxlength="50" />
   <button class="btn-gerar" onclick="gerarCertificado()">Gerar</button>
 </div>
-
+ 
 <div class="canvas-wrap">
-  <canvas id="certCanvas" width="820" height="580"></canvas>
+  <canvas id="certCanvas"></canvas>
 </div>
-
+ 
 <div class="actions">
-  <button class="btn-dl btn-png" id="btnPng" onclick="downloadPNG()">⬇ Baixar PNG</button>
-  <button class="btn-dl btn-pdf" id="btnPdf" onclick="downloadPDF()">⬇ Baixar PDF</button>
+  <button class="btn-dl btn-png" id="btnPng" onclick="downloadPNG()" disabled>⬇ Baixar PNG</button>
+  <button class="btn-dl btn-pdf" id="btnPdf" onclick="downloadPDF()" disabled>⬇ Baixar PDF</button>
 </div>
-
-<div class="status" id="status">✦ Certificado gerado.</div>
-
+ 
+<div class="status" id="status">Aguardando nome…</div>
+ 
 <script>
 const CERT_URL = 'https://i.imgur.com/dWIyASl.png';
-
+ 
 // Coordenadas mapeadas por análise pixel da imagem de referência (2000×1414)
 // A frase "Este certificado é orgulhosamente apresentado a:" ocupa:
 //   X: 700→1861 (centro 1280.5px = 64.03%)
 //   Y: 509→649  (bottom 649px = 45.90%)
 // O nome deve ficar centralizado no mesmo X, com topo ~25px abaixo do bottom da frase
 // Centro Y do nome em 51.77% (732px de 1414px)
-
+ 
 // Posição mapeada por scan pixel-a-pixel da imagem de referência (2000×1414)
 // Cluster do nome JORGE TEIXEIRA: Y 558→659, X 858→1809
 const NOME_X_CENTER  = 0.66675;
 const NOME_Y_CENTER  = 0.43034;
-
+ 
 // Área útil direita do certificado
 const AREA_X_LEFT  = 0.4290;   // X esq do nome = 42.90%
 const AREA_X_RIGHT = 0.9045;   // X dir do nome = 90.45%
-
+ 
 const canvas = document.getElementById('certCanvas');
 const ctx    = canvas.getContext('2d');
 const img    = new Image();
 const MAX_W  = Math.min(window.innerWidth - 40, 820);
 let imgLoaded = false;
-
+ 
 img.crossOrigin = 'anonymous';
 img.onload = () => {
   imgLoaded = true;
-  const scale   = MAX_W / img.naturalWidth;
-  canvas.width  = Math.round(img.naturalWidth  * scale);
-  canvas.height = Math.round(img.naturalHeight * scale);
+  // Renderiza canvas em resolução natural — CSS faz o ajuste visual responsivo
+  canvas.width  = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  canvas.style.width = '100%';
+  canvas.style.height = 'auto';
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   setStatus('Pronto — digite o nome e clique em Gerar.');
 };
 img.onerror = () => setStatus('Erro ao carregar o certificado.');
 img.src = CERT_URL;
-
+ 
 function gerarCertificado() {
   const nome = document.getElementById('nomeInput').value.trim().toUpperCase();
   if (!nome) { setStatus('⚠ Digite um nome primeiro.'); return; }
@@ -236,41 +230,41 @@ function gerarCertificado() {
   document.getElementById('btnPdf').disabled = false;
   setStatus('✦ Certificado gerado.');
 }
-
+ 
 function draw(cvs, c, W, H, nome) {
   c.clearRect(0, 0, W, H);
   c.drawImage(img, 0, 0, W, H);
-
+ 
   // Largura máxima disponível para o nome (área direita do certificado)
   const areaLeft  = AREA_X_LEFT  * W;
   const areaRight = AREA_X_RIGHT * W;
   const maxWidth  = areaRight - areaLeft;   // ~63% da largura total
-
+ 
   const x = NOME_X_CENTER * W;
-
+ 
   const y = NOME_Y_CENTER * H;
-
+ 
   // Começa com 100px escalado, reduz se necessário para caber
   const baseSize  = Math.round(100 * (W / img.naturalWidth));
   let   fontSize  = baseSize;
-
+ 
   c.font = `900 ${fontSize}px 'Cinzel', serif`;
   let measured = c.measureText(nome).width;
-
+ 
   // Reduz até caber dentro da área útil
   while (measured > maxWidth * 0.95 && fontSize > 20) {
     fontSize -= 2;
     c.font = `900 ${fontSize}px 'Cinzel', serif`;
     measured = c.measureText(nome).width;
   }
-
+ 
   c.textAlign    = 'center';
   c.textBaseline = 'middle';
   c.shadowBlur   = 0;
   c.fillStyle    = '#0d0d0d';
   c.fillText(nome, x, y);
 }
-
+ 
 function downloadPNG() {
   const nome = getNome(); if (!nome) return;
   setStatus('⏳ Gerando PNG…');
@@ -280,7 +274,7 @@ function downloadPNG() {
     setStatus('✦ PNG baixado.');
   }, 'image/png');
 }
-
+ 
 async function downloadPDF() {
   const nome = getNome(); if (!nome) return;
   setStatus('⏳ Gerando PDF…');
@@ -293,11 +287,12 @@ async function downloadPDF() {
       unit: 'px', format: [W, H], hotfixes: ['px_scaling']
     });
     pdf.addImage(fc.toDataURL('image/jpeg', 0.97), 'JPEG', 0, 0, W, H);
-    pdf.save(`certificado-${slug(nome)}.pdf`);
+    const _blob = pdf.output('blob');
+    trigger(URL.createObjectURL(_blob), `certificado-${slug(nome)}.pdf`);
     setStatus('✦ PDF baixado.');
   } catch(e) { setStatus('Erro: ' + e.message); }
 }
-
+ 
 function getNome() {
   const n = document.getElementById('nomeInput').value.trim().toUpperCase();
   if (!n) setStatus('⚠ Digite um nome primeiro.');
@@ -310,27 +305,40 @@ function fullCanvas(nome) {
   return fc;
 }
 function trigger(href, name) {
+  const isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if (isMob && navigator.canShare) {
+    fetch(href).then(r => r.blob()).then(blob => {
+      const file = new File([blob], name, { type: blob.type });
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Certificado Patriota' })
+          .catch(() => { const a = document.createElement('a'); a.href = href; a.download = name; a.click(); URL.revokeObjectURL(href); });
+        return;
+      }
+      const a = document.createElement('a'); a.href = href; a.download = name; a.click(); URL.revokeObjectURL(href);
+    });
+    return;
+  }
   const a = document.createElement('a');
   a.href = href; a.download = name; a.click();
   URL.revokeObjectURL(href);
 }
 function slug(s) { return s.replace(/\s+/g, '-'); }
 function setStatus(m) { document.getElementById('status').textContent = m; }
-
+ 
 document.getElementById('nomeInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') gerarCertificado();
 });
-
+ 
 // ── Proteções anti-cópia ──────────────────────────────
 // Botão direito
 document.addEventListener('contextmenu', e => e.preventDefault());
-
+ 
 // Seleção de texto
 document.addEventListener('selectstart', e => e.preventDefault());
-
+ 
 // Arrastar imagens/elementos
 document.addEventListener('dragstart', e => e.preventDefault());
-
+ 
 // Atalhos de teclado
 document.addEventListener('keydown', e => {
   const ctrl = e.ctrlKey || e.metaKey;
@@ -342,7 +350,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
   }
 });
-
+ 
 // CSS anti-seleção
 const style = document.createElement('style');
 style.textContent = `
@@ -361,6 +369,5 @@ style.textContent = `
 document.head.appendChild(style);
 // ─────────────────────────────────────────────────────
 </script>
-
-
-</body></html>
+</body>
+</html>
